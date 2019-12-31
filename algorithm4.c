@@ -54,20 +54,54 @@ static int seq_prepare_buffer(char *file_name, int *buf, int seq_num)
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+static inline void prefetch(const void *ptr)
+{
+	asm volatile("prfm pldl1keep, %a0\n" : : "p" (ptr));
+}
+
 static int seq_max_sum(int *buf, int seq_num)
 {
+	int maxsofar, sum;
+	int val, val2, *addr;
 	int i, j;
-	int maxsofar = 0, sum;
+	//int maxsofar = 0, sum;
 
-	for (i = 0; i < seq_num; i++) {
+	//for (i = 0; i < seq_num; i++) {
 
-		sum = 0;
+	//	sum = 0;
 
-		for (j = i; j < seq_num; j++) {
-			sum += buf[j];
-			maxsofar = max(maxsofar, sum);
-		}
-	}
+	//	for (j = i; j < seq_num; j++) {
+	//		sum += buf[j];
+	//		prefetch(buf + j + 1);
+	//		maxsofar = max(maxsofar, sum);
+	//	}
+	//}
+
+
+	asm volatile (
+		"1:	cmp %w0, #0x0\n"
+		"b.le	5f\n"
+		"mov	%5, #0x0\n"
+		"mov	%2, #0x0\n"
+		"2:	mov	%6, %5\n"
+		"mov	%3, #0x0\n"
+		"3: 	add %8, %1, %6, lsl #2\n"
+		"ldp	%w4, %w7, [%8]\n"
+		"add	%6, %6, #0x2\n"
+		"add	%w3, %w3, %w4\n"
+		"cmp	%w2, %w3\n"
+		"csel	%w2, %w2, %w3, ge  // ge = tcont\n"
+		"add	%w3, %w3, %w7\n"
+		"cmp	%w2, %w3\n"
+		"csel	%w2, %w2, %w3, ge  // ge = tcont\n"
+		"cmp	%0, %6\n"
+		"b.gt	3b\n"
+		"add	%5, %5, #0x1\n"
+		"cmp	%0, %5\n"
+		"b.gt	2b\n"
+		"5:	"
+		: : "r" (seq_num), "r" (buf), "r" (maxsofar), "r" (sum), "r" (val),
+		    "r" (i), "r" (j), "r" (val2), "r" (addr));
 
 	return maxsofar;
 }
@@ -80,9 +114,11 @@ int main(void)
 	seq_num = seq_length("number_sequence.txt");
 	printf("%d\n", seq_num);
 
-	seq_buf = malloc(sizeof(int) * seq_num);
+	seq_buf = malloc(sizeof(int) * (seq_num + 1));
 
 	seq_prepare_buffer("number_sequence.txt", seq_buf, seq_num);
+
+	seq_buf[seq_num] = 0x0;
 
 	//for (int i = 0; i < seq_num; i++)
 	//	printf("%.2lf\n", seq_buf[i]);

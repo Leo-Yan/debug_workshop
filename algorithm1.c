@@ -20,7 +20,7 @@ static int seq_length(char *file_name)
 	return line_num;
 }
 
-static int seq_prepare_buffer(char *file_name, double *buf, int seq_num)
+static int seq_prepare_buffer(char *file_name, int *buf, int seq_num)
 {
 	FILE *stream;
 	char *line = NULL;
@@ -35,7 +35,7 @@ static int seq_prepare_buffer(char *file_name, double *buf, int seq_num)
 		if (i >= seq_num)
 			break;
 
-		buf[i] = strtod(line, NULL);
+		buf[i] = atoi(line);
 		i++;
 	}
 
@@ -44,7 +44,7 @@ static int seq_prepare_buffer(char *file_name, double *buf, int seq_num)
 	return i;
 }
 
-static double max(double a, double b)
+static int max(int a, int b)
 {
 	if (a >= b)
 		return a;
@@ -52,10 +52,10 @@ static double max(double a, double b)
 		return b;
 }
 
-static int seq_max_sum(double *buf, int seq_num)
+static int seq_max_sum(int *buf, int seq_num)
 {
 	int i, j, k;
-	double maxsofar = 0, sum;
+	int maxsofar = 0, sum;
 
 	for (i = 0; i < seq_num; i++) {
 		for (j = i; j < seq_num; j++) {
@@ -73,12 +73,12 @@ static int seq_max_sum(double *buf, int seq_num)
 int main(void)
 {
 	int seq_num;
-	double *seq_buf, max_sum;
+	int *seq_buf, max_sum;
 
 	seq_num = seq_length("number_sequence.txt");
 	printf("%d\n", seq_num);
 
-	seq_buf = malloc(sizeof(double) * seq_num);
+	seq_buf = malloc(sizeof(int) * seq_num);
 
 	seq_prepare_buffer("number_sequence.txt", seq_buf, seq_num);
 
@@ -86,7 +86,7 @@ int main(void)
 	//	printf("%.2lf\n", seq_buf[i]);
 
 	max_sum = seq_max_sum(seq_buf, seq_num);
-	printf("max_sum = %.2lf\n", max_sum);
+	printf("max_sum = %d\n", max_sum);
 
 	return 0;
 }
