@@ -62,9 +62,8 @@ static inline void prefetch(const void *ptr)
 static int seq_max_sum(int *buf, int seq_num)
 {
 	int maxsofar, sum;
-	int val;
+	int val, val2, *addr;
 	int i, j;
-	int *addr;
 	//int maxsofar = 0, sum;
 
 	//for (i = 0; i < seq_num; i++) {
@@ -86,11 +85,13 @@ static int seq_max_sum(int *buf, int seq_num)
 		"mov	%2, #0x0\n"
 		"2:	mov	%6, %5\n"
 		"mov	%3, #0x0\n"
-		"add	%7, %1, %6, lsl #2\n"
-		"3: 	ldr	%w4, [%7]\n"
-		"prfm	pldl1keep, [%7, #4]\n"
-		"add	%6, %6, #0x1\n"
+		"3: 	add %8, %1, %6, lsl #2\n"
+		"ldp	%w4, %w7, [%8]\n"
+		"add	%6, %6, #0x2\n"
 		"add	%w3, %w3, %w4\n"
+		"cmp	%w2, %w3\n"
+		"csel	%w2, %w2, %w3, ge  // ge = tcont\n"
+		"add	%w3, %w3, %w7\n"
 		"cmp	%w2, %w3\n"
 		"csel	%w2, %w2, %w3, ge  // ge = tcont\n"
 		"cmp	%0, %6\n"
@@ -99,7 +100,8 @@ static int seq_max_sum(int *buf, int seq_num)
 		"cmp	%0, %5\n"
 		"b.gt	2b\n"
 		"5:	"
-		: : "r" (seq_num), "r" (buf), "r" (maxsofar), "r" (sum), "r" (val), "r" (i), "r" (j), "r" (addr));
+		: : "r" (seq_num), "r" (buf), "r" (maxsofar), "r" (sum), "r" (val),
+		    "r" (i), "r" (j), "r" (val2), "r" (addr));
 
 	return maxsofar;
 }
@@ -112,9 +114,11 @@ int main(void)
 	seq_num = seq_length("number_sequence.txt");
 	printf("%d\n", seq_num);
 
-	seq_buf = malloc(sizeof(int) * (seq_num + 4));
+	seq_buf = malloc(sizeof(int) * (seq_num + 1));
 
 	seq_prepare_buffer("number_sequence.txt", seq_buf, seq_num);
+
+	seq_buf[seq_num] = 0x0;
 
 	//for (int i = 0; i < seq_num; i++)
 	//	printf("%.2lf\n", seq_buf[i]);
