@@ -64,6 +64,7 @@ static int seq_max_sum(int *buf, int seq_num)
 	int maxsofar, sum;
 	int val;
 	int i, j;
+	int *addr;
 	//int maxsofar = 0, sum;
 
 	//for (i = 0; i < seq_num; i++) {
@@ -85,7 +86,9 @@ static int seq_max_sum(int *buf, int seq_num)
 		"mov	%2, #0x0\n"
 		"2:	mov	%6, %5\n"
 		"mov	%3, #0x0\n"
-		"3: 	ldr	%w4, [%1, %6, lsl #2]\n"
+		"add	%7, %1, %6, lsl #2\n"
+		"3: 	ldr	%w4, [%7]\n"
+		"prfm	pldl1keep, [%7, #4]\n"
 		"add	%6, %6, #0x1\n"
 		"add	%w3, %w3, %w4\n"
 		"cmp	%w2, %w3\n"
@@ -96,7 +99,7 @@ static int seq_max_sum(int *buf, int seq_num)
 		"cmp	%0, %5\n"
 		"b.gt	2b\n"
 		"5:	"
-		: : "r" (seq_num), "r" (buf), "r" (maxsofar), "r" (sum), "r" (val), "r" (i), "r" (j));
+		: : "r" (seq_num), "r" (buf), "r" (maxsofar), "r" (sum), "r" (val), "r" (i), "r" (j), "r" (addr));
 
 	return maxsofar;
 }
